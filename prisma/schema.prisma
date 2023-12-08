@@ -1,0 +1,159 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+type SocialLinks {
+  youtube   String  @default("")
+  instagram String  @default("")
+  facebook  String  @default("")
+  twitter   String  @default("")
+  github    String  @default("")
+  website   String  @default("")
+}
+
+type AccountInfo {
+    total_posts Int  @default(0)
+    total_reads Int @default(0)
+}
+
+model User{
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    name  String
+    email     String @unique
+    bio       String?    @default("")  
+    profile_img   String? @default("")
+    emailVerified   DateTime?
+    hashedPassword  String?
+
+    social_links    SocialLinks?
+    account_info    AccountInfo? 
+    google_auth     Boolean ?    @default(false)
+
+    blogs    Blogs[]
+    author  Comments[] @relation(name: "author")
+    userCommented  Comments[] @relation(name: "userCommented")
+    notificationFor  Notification[] @relation(name: "notificationFor")
+    notification Notification[] @relation(name: "user")
+    accounts Account[]
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+model Account{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String   @db.ObjectId
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.String
+  access_token       String?  @db.String
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.String
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+type Activity{
+    total_likes     Int     @default(0)
+    total_comments  Int     @default(0)
+    total_reads     Int     @default(0)
+    total_parent_comments   Int     @default(0)
+}
+
+model Blogs{
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+    blog_id     String      @unique
+    title       String
+    banner      String?
+    des         String?
+    content     String[]
+    tags        String[]
+    activity    Activity
+    draft       Boolean     @default(false)
+
+    author   User @relation(fields: [authorId], references: [id])
+    authorId  String[]   @db.ObjectId
+
+    comments    Comments[]
+
+    notifications Notification[]
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+model Comments{
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    blogId  String[]   @db.ObjectId
+    blog    Blogs   @relation(fields: [blogId], references: [id])
+
+    author   User @relation(fields: [authorId], references: [id], name: "author")
+    authorId  String[]   @db.ObjectId
+
+    comment     String
+
+    parent   Comments?  @relation("ParentChild", fields: [parentId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+    children Comments[] @relation("ParentChild")
+    parentId String?   @db.ObjectId
+
+    userCommented   User @relation(fields: [userCommentedId], references: [id], name: "userCommented")
+    userCommentedId  String[]   @db.ObjectId 
+
+    isReply     Boolean?
+
+    notification    Notification[] @relation(name: "comment")
+    notificationReply    Notification[] @relation(name: "reply")
+    notificationReplyOnComment    Notification[] @relation(name: "reply_on_comment")
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+model Notification{
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+
+    type    NotificationType
+    
+    blogId  String[]   @db.ObjectId
+    blog    Blogs   @relation(fields: [blogId], references: [id])
+
+    notificationFor   User @relation(fields: [notificationForUserId], references: [id], name: "notificationFor")
+    notificationForUserId  String[]   @db.ObjectId 
+
+    user   User @relation(fields: [notificationForUserId], references: [id], name: "user")
+    userId  String[]   @db.ObjectId 
+
+    commentId  String[]   @db.ObjectId
+    comment    Comments   @relation(fields: [commentId], references: [id], name: "comment")
+
+    reply  String[]   @db.ObjectId
+    replyId    Comments   @relation(fields: [commentId], references: [id], name: "reply")
+
+    repliedOnComment  String[]   @db.ObjectId
+    repliedOnCommentId    Comments   @relation(fields: [commentId], references: [id], name: "reply_on_comment")
+
+    seen        Boolean     @default(false)
+
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+}
+
+enum NotificationType{
+    like
+    comment
+    reply
+}

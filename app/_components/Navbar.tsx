@@ -1,14 +1,19 @@
 "use client";
 
 import clsx from "clsx";
+import { Bell } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { IoSearchOutline } from "react-icons/io5";
+import { IoNotifications, IoSearchOutline } from "react-icons/io5";
 import { LuFileEdit } from "react-icons/lu";
+import UserNavigationPanel from "./UserNavigationPanel";
 
-export const Navbar = () => {
+const Navbar = () => {
   const [isShowSearchBox, setIsShowSearchBox] = useState<Boolean>(false);
+  const session = useSession();
+
   return (
     <div className="navbar">
       <Link href="/" className="flex-none w-10">
@@ -45,13 +50,29 @@ export const Navbar = () => {
           <p>Write</p>
         </Link>
 
-        <Link href="/signin" className="btn-dark py-2">
-          Sign In
-        </Link>
-        <Link href="/signin" className="btn-light py-2 hidden md:block">
-          Sign Up
-        </Link>
+        {session ? (
+          <>
+            <Link href="/dashboard/nitification">
+              <button className="w-12 h-12 rounded-full bg-grey relative hover:bg-black/10 flex items-center justify-center">
+                <Bell className="w-5 h-5 text-black" />
+              </button>
+            </Link>
+
+            <UserNavigationPanel />
+          </>
+        ) : (
+          <>
+            <Link href="/" className="btn-dark py-2">
+              Sign In
+            </Link>
+            <Link href="/" className="btn-light py-2 hidden md:block">
+              Sign Up
+            </Link>
+          </>
+        )}
       </div>
     </div>
   );
 };
+
+export default Navbar;
